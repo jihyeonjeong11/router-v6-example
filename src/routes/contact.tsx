@@ -1,8 +1,17 @@
 import React from "react";
-import { Form } from "react-router-dom";
+
+import type { ContactProps } from "../contact";
+
+import { Form, useLoaderData, LoaderFunction, LoaderFunctionArgs } from "react-router-dom";
+import { getContact } from "../contact";
+
+export async function loader({params}: LoaderFunctionArgs) {
+    if(!params.contactId) throw new Error('no contactId');
+    return getContact(params.contactId);
+}
 
 export default function Contact() {
-    const contact = {
+    const defaultContact = {
         first: "Your",
         last: "Name",
         avatar: "https://placekitten.com/g/200/200",
@@ -10,6 +19,7 @@ export default function Contact() {
         notes: "Some notes",
         favorite: true,
     };
+    const contact = useLoaderData() as ContactProps ?? defaultContact;
 
     return (
         <div id="contact">
