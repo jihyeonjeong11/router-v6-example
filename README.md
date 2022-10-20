@@ -578,7 +578,353 @@ vite 서버가 post 요청을 받아들이지 못하기 떄문입니다. 따라�
 
 # 9. Contacts 생성
 
-root 라우트에 action 생성
+root 라우트에 action 생성 및 form 을 Form으로 변경,
 route 선언에 등록,
-form을 바꾸는 순서대로 진행합니다.
 
+
+👉 Create the action and change <form> to <Form>
+
+
+
+```
+// src/routes/root.tsx
+
+import {
+  Outlet,
+  Link,
+  useLoaderData,
+  Form,
+} from "react-router-dom";
+import { getContacts, createContact } from "../contacts";
+
+export async function action() {
+  await createContact();
+}
+
+/* other code */
+
+export default function Root() {
+  const { contacts } = useLoaderData();
+  return (
+    <>
+      <div id="sidebar">
+        <h1>React Router Contacts</h1>
+        <div>
+          {/* other code */}
+          <Form method="post">
+            <button type="submit">New</button>
+          </Form>
+        </div>
+
+        {/* other code */}
+      </div>
+    </>
+  );
+}
+```
+
+👉 Import and set the action on the route
+
+
+
+```
+// src/main.tsx
+
+/* other imports */
+
+import Root, {
+  loader as rootLoader,
+  action as rootAction,
+} from "./routes/root";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Root />,
+    errorElement: <ErrorPage />,
+    loader: rootLoader,
+    action: rootAction,
+    children: [
+      {
+        path: "contacts/:contactId",
+        element: <Contact />,
+      },
+    ],
+  },
+]);
+
+```
+
+이런식으로, form 의 submit action을 위의 createContacts()를 호출하도록 합니다.
+
+![img](https://reactrouter.com/_docs/tutorial/08.webp)
+
+이제 new 버튼을 누르면 no name이라는 contact 로우가  생성되는 것을 확인할 수 있습니다.
+
+주목해야 할 것은 React Router Form 태그가 submit 이 일어날 때 
+
+일반적으로 서버에 요청을 보내는 것 대신 방금 정의한 action의 코드를 실행한 다는 것입니다.
+
+웹 표준에서 POST 액션은 어떠한 데이터가 변경되는 것을 의미합니다. 이것을 React Router에서는 변경되는 데이터를 userLoaderData 훅으로 자동적으로 싱크하게 됩니다.
+
+# 10. Loader에서 Url params 사용하기
+
+이제 아무런 데이터가 없는 row를 만들 수 있게 되었으므로, params을 넣어서 데이터 자체를 넣는 것을 할 수 있게 되었습니다.
+
+현재 생성된 no nmae 을 클릭하면 데이터가 없으므로 default로 설정된 데이터가 출력됩니다.
+
+![img](https://reactrouter.com/_docs/tutorial/09.webp)
+
+현재 contact 상세는 코드는 이렇습니다.
+
+```
+[
+  {
+    path: "contacts/:contactId",
+    element: <Contact />,
+  },
+];
+```
+
+':contactId' 세그먼트에서 :는 dynamic 세그먼트라고 부릅니다.
+
+실제로는 contacts/wjdwlgus11 의 다이나믹한 param을 받는다는 의미이며 이것을 URL params, 혹은 params라고 부릅니다.
+
+이것은 loader에서 핸들링할 수 있으며, params.contactId의 형태로 조회할 수 있습니다.
+
+👉 contact 페이지의 loader에 데이터를 조회하는 로직응ㄹ 추가합니다.
+
+```
+// src/routes/contact.jsx
+
+import { Form, useLoaderData } from "react-router-dom";
+import { getContact } from "../contacts";
+
+export async function loader({ params }) {
+  return getContact(params.contactId);
+}
+
+export default function Contact() {
+  const contact = useLoaderData();
+  // existing code
+}
+
+```
+
+👉 route root에 loader룰 추가합니다.
+
+```
+// src/main.tsx
+
+/* existing code */
+import Contact, {
+  loader as contactLoader,
+} from "./routes/contact";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Root />,
+    errorElement: <ErrorPage />,
+    loader: rootLoader,
+    action: rootAction,
+    children: [
+      {
+        path: "contacts/:contactId",
+        element: <Contact />,
+        loader: contactLoader,
+      },
+    ],
+  },
+]);
+
+/* existing code */
+
+```
+
+# 10. 데이터 업데이트
+
+Form으로 데이터의 업데이트 역시 가능합니다.
+
+여기서는 contacts/:contactId/edit 로 데이터 업데이트를 쳐리하도록 합니다.
+
+👉 edit 컴포넌트 생성
+
+```
+sudo touch src/routes/edit.tsx
+```
+
+👉 edit page 작성
+
+```
+
+// src/routes/edit.tsx
+
+import { Form, useLoaderData } from "react-router-dom";
+
+export default function EditContact() {
+  const contact = useLoaderData();
+
+  return (
+    <Form method="post" id="contact-form">
+      <p>
+        <span>Name</span>
+        <input
+          placeholder="First"
+          aria-label="First name"
+          type="text"
+          name="first"
+          defaultValue={contact.first}
+        />
+        <input
+          placeholder="Last"
+          aria-label="Last name"
+          type="text"
+          name="last"
+          defaultValue={contact.last}
+        />
+      </p>
+      <label>
+        <span>Twitter</span>
+        <input
+          type="text"
+          name="twitter"
+          placeholder="@jack"
+          defaultValue={contact.twitter}
+        />
+      </label>
+      <label>
+        <span>Avatar URL</span>
+        <input
+          placeholder="https://example.com/avatar.jpg"
+          aria-label="Avatar URL"
+          type="text"
+          name="avatar"
+          defaultValue={contact.avatar}
+        />
+      </label>
+      <label>
+        <span>Notes</span>
+        <textarea
+          name="notes"
+          defaultValue={contact.notes}
+          rows={6}
+        />
+      </label>
+      <p>
+        <button type="submit">Save</button>
+        <button type="button">Cancel</button>
+      </p>
+    </Form>
+  );
+}
+```
+
+👉 edit 라우트 추가
+
+```
+
+// src/main.tsx
+
+/* existing code */
+import EditContact from "./routes/edit";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Root />,
+    errorElement: <ErrorPage />,
+    loader: rootLoader,
+    action: rootAction,
+    children: [
+      {
+        path: "contacts/:contactId",
+        element: <Contact />,
+        loader: contactLoader,
+      },
+      {
+        path: "contacts/:contactId/edit",
+        element: <EditContact />,
+        loader: contactLoader,
+      },
+    ],
+  },
+]);
+
+/* existing code */
+
+```
+
+url 세그먼트는 다음과 같습니다.
+
+```
+http://localhost:5173/contacts/1sspcao/edit
+```
+
+그리고 contactLoader를 재사용 하였으나, 권장되지는 않습니다.(스크린 별로 따로 사용해 주세요.)
+
+# 13. FormData를 사용한 데이터 업데이트
+
+이제 실제 업데이트 로직을 채울 차례입니다.
+
+```
+// src/routes/edit.tsx
+
+import {
+  Form,
+  useLoaderData,
+  redirect,
+} from "react-router-dom";
+import { updateContact } from "../contacts";
+
+export async function action({ request, params }) {
+  const formData = await request.formData();
+  const updates = Object.fromEntries(formData);
+  await updateContact(params.contactId, updates);
+  return redirect(`/contacts/${params.contactId}`);
+}
+```
+
+👉 Main.tsx에 액션을 추가합니다.
+
+```
+
+// src/routes/main.tsx
+
+/* existing code */
+import EditContact, {
+  action as editAction,
+} from "./routes/edit";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Root />,
+    errorElement: <ErrorPage />,
+    loader: rootLoader,
+    action: rootAction,
+    children: [
+      {
+        path: "contacts/:contactId",
+        element: <Contact />,
+        loader: contactLoader,
+      },
+      {
+        path: "contacts/:contactId/edit",
+        element: <EditContact />,
+        loader: contactLoader,
+        action: editAction,
+      },
+    ],
+  },
+]);
+
+/* existing code */
+
+```
+
+![img](https://reactrouter.com/_docs/tutorial/12.webp)
+
+업데이트가 정상적으로 실행되는 것을 확인할 수 있습니다.
+
+// 이후 다른 작업을 해 나가면서 추가적으로 정리할 예정

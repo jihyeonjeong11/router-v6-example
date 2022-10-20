@@ -2,11 +2,14 @@ import localforage from "localforage";
 import { matchSorter } from "match-sorter";
 import sortBy from "sort-by";
 
-type ContactProps = {
+export type ContactProps = {
     id: string;
     first?: string;
     last?: string;
     favorite?: string;
+    avatar ?: string;
+    notes?: string;
+    twitter?: string;
 };
 
 export type IContacts = ContactProps[] | null;
@@ -30,7 +33,7 @@ export async function createContact() {
     return contact;
 }
 
-export async function getContact(id) {
+export async function getContact(id: string) {
     await fakeNetwork(`contact:${id}`);
     let contacts: IContacts = await localforage.getItem("contacts") ?? [];
     let contact = contacts ? contacts.find((contact) => contact.id === id) : null;
